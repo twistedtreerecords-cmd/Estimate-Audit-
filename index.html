@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#172554">
+<meta name="description" content="Offline-first collision estimate review and supplement drafting tool.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<title>Estimate Copilot — Offline</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#172033;background:#f4f6fa}
+*{box-sizing:border-box}body{margin:0}header{background:#172554;color:white;padding:18px 16px}header h1{margin:0;font-size:1.35rem}header p{margin:5px 0 0;color:#dbeafe;font-size:.9rem}
+main{max-width:980px;margin:auto;padding:14px;display:grid;gap:14px}.panel{background:white;border:1px solid #dbe1eb;border-radius:14px;padding:15px;box-shadow:0 2px 8px #1725540a}
+h2{font-size:1.05rem;margin:0 0 12px}label{display:block;font-size:.88rem;font-weight:650;margin:10px 0 5px}input,select,textarea{width:100%;font:inherit;padding:10px;border:1px solid #bdc7d7;border-radius:9px;background:white}textarea{min-height:82px;resize:vertical}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}button,.filebtn{border:0;border-radius:9px;padding:10px 13px;font:inherit;font-weight:700;background:#1d4ed8;color:white;cursor:pointer}.secondary{background:#e8edf5;color:#172033}.danger{background:#b91c1c}.small{font-size:.85rem;color:#536078}.case{border:1px solid #dbe1eb;border-radius:10px;padding:11px;margin-top:8px}.case strong{display:block}.case p{margin:4px 0;color:#536078;font-size:.88rem}.pill{display:inline-block;background:#eef2ff;color:#3730a3;padding:3px 7px;border-radius:99px;font-size:.75rem}.notice{background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:11px;font-size:.88rem}.finding{padding:10px;border-left:4px solid #d97706;background:#fffbeb;margin:7px 0;border-radius:6px}.finding.ok{border-color:#64748b;background:#f8fafc}.hidden{display:none}.checkrow{display:flex;gap:8px;align-items:center;margin:10px 0}.checkrow input{width:auto}.footer{font-size:.78rem;color:#64748b;text-align:center;padding:4px 0 18px}
+@media(max-width:600px){.row{grid-template-columns:1fr}main{padding:10px}.panel{padding:12px}}
+</style>
+</head>
+<body>
+<header><h1>Estimate Copilot</h1><p>Offline-first collision estimate review · Data stays on this device</p></header>
+<main>
+<div class="notice"><b>Local prototype:</b> This file saves cases in this browser on this device. It is not a verified secure production app. Cases inactive for 30 days are automatically deleted when the app next opens. Export backups regularly. Use sample data until you have verified the workflow. It does not connect directly to CCC ONE or verify OEM procedures.</div>
+<section class="panel">
+<h2>1. Create or open a case</h2>
+<div class="row">
+<div><label for="caseName">Case name / RO reference</label><input id="caseName" placeholder="e.g. Sample repair case"></div>
+<div><label for="vehicle">Vehicle</label><input id="vehicle" placeholder="Year, make, model"></div>
+</div>
+<label for="vin">VIN (optional; avoid real customer data during testing)</label><input id="vin" placeholder="Optional">
+<label for="notes">Initial notes</label><textarea id="notes" placeholder="Damage area, technician observations, questions to verify..."></textarea>
+<div class="actions"><button id="createCase">Create case</button><button class="secondary" id="newCase">Clear form</button></div>
+<div id="caseList"></div>
+</section>
+<section class="panel">
+<h2>2. Import estimate lines</h2>
+<p class="small">Choose a CSV, JSON, or plain-text export. PDF, EMS/BMS, and vendor-specific formats are not parsed by this prototype unless converted to a supported format first.</p>
+<label for="estimateFile">Estimate file</label><input type="file" id="estimateFile" accept=".csv,.json,.txt,.xml,text/csv,application/json,text/plain,text/xml">
+<div class="actions"><button id="importFile">Import into selected case</button><button class="secondary" id="sampleImport">Load sample lines</button></div>
+<div id="importStatus" class="small" role="status"></div>
+<div id="lineList"></div>
+</section>
+<section class="panel">
+<h2>3. Review prompts</h2>
+<p class="small">These are checks to investigate, not confirmed repair requirements. Confirm all operations, labor, and procedures against the actual vehicle, estimate, and verified sources.</p>
+<div id="findings"><p class="small">Select a case to review its imported lines.</p></div>
+</section>
+<section class="panel">
+<h2>4. Supplement draft & evidence</h2>
+<div class="row"><div><label for="operation">Proposed operation</label><input id="operation" placeholder="Operation to verify"></div><div><label for="hours">Proposed labor hours</label><input id="hours" type="number" min="0" step=".1" placeholder="0.0"></div></div>
+<div class="row"><div><label for="amount">Parts/material amount ($)</label><input id="amount" type="number" min="0" step=".01" placeholder="0.00"></div><div><label for="status">Estimator decision</label><select id="status"><option>Draft — needs review</option><option>Approved by estimator</option><option>Rejected by estimator</option></select></div></div>
+<label for="reason">Reason / supporting facts</label><textarea id="reason" placeholder="Explain what was observed and why this needs verification"></textarea>
+<label for="techNotes">Technician notes</label><textarea id="techNotes" placeholder="Technician's observations"></textarea>
+<label for="oemRef">OEM procedure reference and verification notes</label><textarea id="oemRef" placeholder="Enter only a verified source/reference; do not guess"></textarea>
+<label for="evidence">Evidence photos/documents (saved locally with the case)</label><input id="evidence" type="file" accept="image/*,.pdf,.txt,.jpg,.jpeg,.png" multiple>
+<div class="actions"><button id="saveDraft">Save supplement draft</button><button class="secondary" id="exportCase">Export selected case backup</button><button class="secondary" id="exportReport">Export review report</button></div>
+<div id="draftList"></div>
+</section>
+<section class="panel">
+<h2>5. Local backup and privacy</h2>
+<p class="small">Export a case backup before changing phones, clearing browser data, or uninstalling/clearing Chrome. This prototype stores data in browser storage, which can be removed by Android/browser cleanup.</p>
+<div class="actions"><button class="secondary" id="exportAll">Export all cases</button><label class="filebtn" for="backupFile">Import backup JSON</label><input id="backupFile" class="hidden" type="file" accept=".json,application/json"><button class="danger" id="deleteCase">Delete selected case</button></div>
+<div id="backupStatus" class="small"></div>
+</section>
+<div class="footer">Estimate Copilot · Local prototype · No automatic billing, supplement submission, or OEM claims</div>
+</main>
+<script>
+(function(){
+'use strict';
+const DB_NAME='estimate-copilot-local-v1', STORE='cases';
+let db, selectedId=null, cases=[];
+const $=id=>document.getElementById(id);
+function openDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,1);req.onupgradeneeded=()=>{const d=req.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE,{keyPath:'id'});};req.onsuccess=()=>{db=req.result;resolve(db)};req.onerror=()=>reject(req.error);});}
+function tx(mode='readonly'){return db.transaction(STORE,mode).objectStore(STORE)}
+function getAll(){return new Promise((resolve,reject)=>{let r=tx().getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error)})}
+function put(c){return new Promise((resolve,reject)=>{let r=tx('readwrite').put(c);r.onsuccess=resolve;r.onerror=()=>reject(r.error)})}
+function del(id){return new Promise((resolve,reject)=>{let r=tx('readwrite').delete(id);r.onsuccess=resolve;r.onerror=()=>reject(r.error)})}
+function id(){return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9)}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function current(){return cases.find(c=>c.id===selectedId)}
+const IDLE_LIMIT_MS=30*24*60*60*1000;
+function touch(c){c.updated=Date.now();c.lastActivity=c.updated}
+async function purgeExpiredCases(){
+  const all=await getAll(), now=Date.now();
+  for(const c of all){
+    const last=Number(c.lastActivity||c.updated||c.created||0);
+    if(last>0 && now-last>=IDLE_LIMIT_MS) await del(c.id);
+  }
+}
+async function refresh(){cases=(await getAll()).sort((a,b)=>b.updated-a.updated);if(!cases.some(c=>c.id===selectedId))selectedId=cases[0]?.id||null;renderCases();renderSelected()}
+function renderCases(){const el=$('caseList');if(!cases.length){el.innerHTML='<p class="small">No saved cases yet.</p>';return}el.innerHTML='<h3>Saved cases</h3>'+cases.map(c=>`<div class="case"><strong>${esc(c.name||'Untitled case')} <span class="pill">${(c.lines||[]).length} lines</span></strong><p>${esc(c.vehicle||'Vehicle not specified')} · Updated ${new Date(c.updated).toLocaleString()}</p><div class="actions"><button class="secondary" data-open="${c.id}">${c.id===selectedId?'Selected':'Open case'}</button></div></div>`).join('');el.querySelectorAll('[data-open]').forEach(b=>b.onclick=async()=>{selectedId=b.dataset.open;const c=cases.find(x=>x.id===selectedId);if(c){touch(c);await put(c);await refresh()}else{renderCases();renderSelected()}})}
+function renderSelected(){const c=current();$('lineList').innerHTML=c?`<h3>Imported lines (${c.lines.length})</h3>`+(c.lines.length?c.lines.map((l,i)=>`<div class="case"><strong>${esc(l.description||l.operation||('Line '+(i+1)))}</strong><p>Labor: ${esc(l.laborCategory||'Unspecified')} · Hours: ${esc(l.hours??'—')} · Amount: ${esc(l.amount??'—')}</p><p class="small">Source: ${esc(l.sourceText||'Imported line')}</p></div>`).join(''):'<p class="small">No estimate lines imported.</p>'):'<p class="small">Create or select a case first.</p>';
+$('findings').innerHTML=c?makeFindings(c):'<p class="small">Select a case to review its imported lines.</p>';
+$('draftList').innerHTML=c?'<h3>Saved drafts ('+c.drafts.length+')</h3>'+(c.drafts.length?c.drafts.map(d=>`<div class="case"><strong>${esc(d.operation||'Unspecified operation')}</strong><p>${esc(d.status)} · ${esc(d.hours||'0')} labor hours · $${Number(d.amount||0).toFixed(2)}</p><p>${esc(d.reason||'No reason entered')}</p><p class="small">${d.evidence.length} evidence file(s) · Saved ${new Date(d.created).toLocaleString()}</p></div>`).join(''):'<p class="small">No supplement drafts yet.</p>'):'';
+}
+function makeFindings(c){let f=[];if(!c.vehicle)f.push('Vehicle year/make/model is missing or incomplete; verify before reviewing operations.');if(!c.lines.length)f.push('No estimate lines are imported yet.');const seen=new Map();c.lines.forEach(l=>{const key=(l.description||l.operation||'').trim().toLowerCase();if(key){if(seen.has(key))f.push('Possible duplicate description: “'+(l.description||l.operation)+'”. Compare labor and included operations before deciding.');else seen.set(key,1)}});if(c.lines.some(l=>/scan|calibrat/i.test(l.description||l.operation||'')))f.push('Scan/calibration wording appears in the estimate. Verify applicability and required procedure for this specific vehicle and repair.');if(c.lines.some(l=>/corrosion|cavity|seam sealer|anti-corrosion/i.test(l.description||l.operation||'')))f.push('Corrosion-protection/material wording appears. Verify whether it is applicable and already included.');if(c.lines.some(l=>!l.laborCategory))f.push('One or more lines have no recognized labor category. Verify the original estimate details.');if(!f.length)f.push('No basic rule-based flags found. This is not proof the estimate is complete or correct.');return f.map(x=>`<div class="finding">${esc(x)}</div>`).join('')+'<div class="finding ok">Every flag requires estimator verification. This tool does not determine repair necessity or validate OEM procedures.</div>'}
+function parseCSV(text){const rows=[];let row=[],field='',q=false;for(let i=0;i<text.length;i++){const ch=text[i];if(ch==='"'&&q&&text[i+1]==='"'){field+='"';i++}else if(ch==='"')q=!q;else if(ch===','&&!q){row.push(field);field=''}else if((ch==='\n'||ch==='\r')&&!q){if(ch==='\r'&&text[i+1]==='\n')i++;row.push(field);if(row.some(x=>x.trim()))rows.push(row);row=[];field=''}else field+=ch}row.push(field);if(row.some(x=>x.trim()))rows.push(row);if(rows.length<2)return rows.map(r=>({description:r.join(' ').trim(),sourceText:r.join(', ')}));const heads=rows.shift().map(h=>h.trim().toLowerCase());return rows.map(r=>{const o={};heads.forEach((h,i)=>o[h]=r[i]||'');const pick=keys=>{for(const k of keys){const idx=heads.indexOf(k);if(idx>=0)return o[k]}return ''};return {description:pick(['description','operation','line description','labor operation','item']),laborCategory:pick(['labor category','category','labor type']),hours:pick(['hours','labor hours','labor hrs']),amount:pick(['amount','total','parts amount','price']),sourceText:r.join(', ')}})}
+function normalizeLine(x){if(typeof x==='string')return {description:x,sourceText:x};return {description:x.description||x.operation||x.name||x['line description']||'',laborCategory:x.laborCategory||x.labor_category||x.category||'',hours:x.hours??x.laborHours??x.labor_hours??'',amount:x.amount??x.total??x.partsAmount??'',sourceText:x.sourceText||JSON.stringify(x)}}
+async function readFiles(files){let out=[];for(const file of files){if(file.size>12*1024*1024)throw Error(file.name+' is over the 12 MB per-file limit.');const data=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;if(file.type.startsWith('image/'))r.readAsDataURL(file);else r.readAsText(file)});out.push({name:file.name,type:file.type,size:file.size,data})}return out}
+$('createCase').onclick=async()=>{const c={id:id(),name:$('caseName').value.trim()||'Untitled case',vehicle:$('vehicle').value.trim(),vin:$('vin').value.trim(),notes:$('notes').value.trim(),lines:[],drafts:[],created:Date.now(),updated:Date.now(),lastActivity:Date.now()};await put(c);selectedId=c.id;await refresh();$('importStatus').textContent='Case saved locally on this device.'};
+$('newCase').onclick=()=>['caseName','vehicle','vin','notes'].forEach(x=>$(x).value='');
+$('importFile').onclick=async()=>{try{const c=current(),f=$('estimateFile').files[0];if(!c){$('importStatus').textContent='Create or select a case first.';return}if(!f){$('importStatus').textContent='Choose a file first.';return}if(f.size>5*1024*1024)throw Error('Estimate file exceeds the 5 MB import limit.');const text=await f.text();let lines;if(f.name.toLowerCase().endsWith('.json')){const j=JSON.parse(text);lines=(Array.isArray(j)?j:(j.lines||j.lineItems||j.operations||[])).map(normalizeLine);if(!lines.length)throw Error('JSON did not contain a recognizable array of estimate lines.')}else if(f.name.toLowerCase().endsWith('.csv'))lines=parseCSV(text).map(normalizeLine);else if(f.name.toLowerCase().endsWith('.xml'))throw Error('XML import is not implemented in this prototype. Export CSV or JSON instead.');else lines=text.split(/\r?\n/).filter(x=>x.trim()).map(x=>normalizeLine(x));if(!lines.length)throw Error('No readable estimate lines found.');c.lines.push(...lines);touch(c);await put(c);await refresh();$('importStatus').textContent=`Imported ${lines.length} line(s). Verify the imported values against the original estimate.`}catch(e){$('importStatus').textContent='Import failed: '+e.message}};
+$('sampleImport').onclick=async()=>{const c=current();if(!c){$('importStatus').textContent='Create or select a case first.';return}c.lines.push({description:'Repair front bumper cover',laborCategory:'Body',hours:'2.5',amount:'0',sourceText:'Synthetic sample line'},{description:'Repair front bumper cover',laborCategory:'Body',hours:'1.0',amount:'0',sourceText:'Synthetic duplicate sample line'},{description:'Post-repair scan — verify applicability',laborCategory:'Mechanical',hours:'0.5',amount:'0',sourceText:'Synthetic sample line'});touch(c);await put(c);await refresh();$('importStatus').textContent='Synthetic sample lines added.'};
+$('saveDraft').onclick=async()=>{try{const c=current();if(!c){alert('Create or select a case first.');return}const evidence=await readFiles(Array.from($('evidence').files));c.drafts.push({id:id(),operation:$('operation').value.trim(),hours:$('hours').value,amount:$('amount').value,status:$('status').value,reason:$('reason').value.trim(),techNotes:$('techNotes').value.trim(),oemRef:$('oemRef').value.trim(),evidence,created:Date.now()});touch(c);await put(c);$('evidence').value='';await refresh();alert('Draft saved locally. Verify evidence and references before using it.')}catch(e){alert('Could not save draft: '+e.message)}};
+function download(name,data,type='application/json'){const blob=new Blob([data],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+$('exportCase').onclick=()=>{const c=current();if(c)download('estimate-copilot-case-'+c.id+'.json',JSON.stringify(c,null,2))};
+$('exportAll').onclick=()=>download('estimate-copilot-backup.json',JSON.stringify({format:'estimate-copilot-backup-v1',exportedAt:new Date().toISOString(),cases},null,2));
+$('exportReport').onclick=()=>{const c=current();if(c)download('estimate-copilot-review.txt',`Estimate Copilot review report\nCase: ${c.name}\nVehicle: ${c.vehicle}\nExported: ${new Date().toLocaleString()}\n\nLINES\n${c.lines.map((l,i)=>`${i+1}. ${l.description} | ${l.laborCategory||'Unspecified'} | hours ${l.hours||'—'} | amount ${l.amount||'—'}`).join('\n')}\n\nREVIEW PROMPTS\n${$('findings').innerText}\n\nSUPPLEMENT DRAFTS\n${c.drafts.map(d=>`${d.operation}\nStatus: ${d.status}\nReason: ${d.reason}\nTechnician notes: ${d.techNotes}\nOEM reference: ${d.oemRef}`).join('\n\n')}\n\nThis report contains prompts for estimator verification, not confirmed repair requirements.`,'text/plain')};
+$('backupFile').onchange=async e=>{try{const f=e.target.files[0];if(!f)return;const data=JSON.parse(await f.text());const arr=Array.isArray(data)?data:data.cases;if(!Array.isArray(arr))throw Error('Backup file format not recognized.');for(const c of arr){if(c&&c.id&&Array.isArray(c.lines)&&Array.isArray(c.drafts)){touch(c);await put(c)}}await refresh();$('backupStatus').textContent=`Imported ${arr.length} case record(s). Review cases for duplicates.`}catch(err){$('backupStatus').textContent='Backup import failed: '+err.message}e.target.value=''};
+$('deleteCase').onclick=async()=>{const c=current();if(!c)return;if(!confirm('Permanently delete this case and its locally stored evidence from this browser? Export a backup first if needed.'))return;await del(c.id);selectedId=null;await refresh();$('backupStatus').textContent='Selected case deleted from this browser.'};
+if('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1')){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(err=>console.warn('Offline worker registration failed:',err)));
+}
+openDB().then(async()=>{await purgeExpiredCases();await refresh()}).catch(e=>{document.querySelector('main').insertAdjacentHTML('afterbegin','<div class="notice">Local database unavailable in this browser context. Try opening this file in Chrome. Error: '+esc(e.message)+'</div>')});
+})();
+</script>
+</body></html>
