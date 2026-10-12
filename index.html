@@ -217,7 +217,7 @@ for(const row of rows){
 
      lines.push(recognizeLine(text,'PDF page '+pageNo+': '+text));
     }
-
+   }
    if(!lines.length)
     throw Error('No selectable text was found. This PDF may be scanned and require OCR.');
   }else{
