@@ -155,7 +155,7 @@ if(hourMatch)hours=hourMatch[1];
  // Remove prices and labeled hours.
  description=description.replace(/\$\s*\d[\d,]*(?:\.\d{1,2})?/g,' ');
  description=description.replace(/\b\d+(?:\.\d+)?\s*(?:hours?|hrs?|hr)\b/gi,' ');
-
+description=description.replace(/\b(?:Body|Paint|Mechanical|Structural)\s+\d+(?:\.\d+)?\b/gi,' ');
  // Remove category labels without removing the repair operation.
 description=description.replace(/\b(?:body|paint|mech|mechanical|structural|refinish)\s*labor\b/gi,' ');
  description=description.replace(/\bparts?\b/gi,' ');
