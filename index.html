@@ -102,8 +102,52 @@ function normalizeLine(x){if(typeof x==='string')return {description:x,sourceTex
 async function readFiles(files){let out=[];for(const file of files){if(file.size>12*1024*1024)throw Error(file.name+' is over the 12 MB per-file limit.');const data=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;if(file.type.startsWith('image/'))r.readAsDataURL(file);else r.readAsText(file)});out.push({name:file.name,type:file.type,size:file.size,data})}return out}
 $('createCase').onclick=async()=>{const c={id:id(),name:$('caseName').value.trim()||'Untitled case',vehicle:$('vehicle').value.trim(),vin:$('vin').value.trim(),notes:$('notes').value.trim(),lines:[],drafts:[],created:Date.now(),updated:Date.now(),lastActivity:Date.now()};await put(c);selectedId=c.id;await refresh();$('importStatus').textContent='Case saved locally on this device.'};
 $('newCase').onclick=()=>['caseName','vehicle','vin','notes'].forEach(x=>$(x).value='');
-$('importFile').onclick=async()=>{try{const c=current(),f=$('estimateFile').files[0];if(!c){$('importStatus').textContent='Create or select a case first.';return}if(!f){$('importStatus').textContent='Choose a file first.';return}if(f.size>5*1024*1024)throw Error('Estimate file exceeds the 5 MB import limit.');const text=await f.text();let lines;if(f.name.toLowerCase().endsWith('.json')){const j=JSON.parse(text);lines=(Array.isArray(j)?j:(j.lines||j.lineItems||j.operations||[])).map(normalizeLine);if(!lines.length)throw Error('JSON did not contain a recognizable array of estimate lines.')}else if(f.name.toLowerCase().endsWith('.csv'))lines=parseCSV(text).map(normalizeLine);else if(f.name.toLowerCase().endsWith('.xml'))throw Error('XML import is not implemented in this prototype. Export CSV or JSON instead.');else lines=text.split(/\r?\n/).filter(x=>x.trim()).map(x=>normalizeLine(x));if(!lines.length)throw Error('No readable estimate lines found.');c.lines.push(...lines);touch(c);await put(c);await refresh();$('importStatus').textContent=`Imported ${lines.length} line(s). Verify the imported values against the original estimate.`}catch(e){$('importStatus').textContent='Import failed: '+e.message}};
-$('sampleImport').onclick=async()=>{const c=current();if(!c){$('importStatus').textContent='Create or select a case first.';return}c.lines.push({description:'Repair front bumper cover',laborCategory:'Body',hours:'2.5',amount:'0',sourceText:'Synthetic sample line'},{description:'Repair front bumper cover',laborCategory:'Body',hours:'1.0',amount:'0',sourceText:'Synthetic duplicate sample line'},{description:'Post-repair scan — verify applicability',laborCategory:'Mechanical',hours:'0.5',amount:'0',sourceText:'Synthetic sample line'});touch(c);await put(c);await refresh();$('importStatus').textContent='Synthetic sample lines added.'};
+$('importFile').onclick=async()=>{
+try{
+ const c=current(),f=$('estimateFile').files[0];
+ if(!c){$('importStatus').textContent='Create or select a case first.';return}
+ if(!f){$('importStatus').textContent='Choose a file first.';return}
+ if(f.size>5*1024*1024)throw Error('Estimate file exceeds the 5 MB import limit.');
+ const isPdf=f.type==='application/pdf'||f.name.toLowerCase().endsWith('.pdf');
+ let lines=[];
+ if(isPdf){
+   if(!window.pdfjsLib||typeof window.pdfjsLib.getDocument!=='function')throw Error('PDF reader library is unavailable. Connect once to load the app files, then retry.');
+   window.pdfjsLib.GlobalWorkerOptions.workerSrc='./pdf.worker.min.js';
+   const bytes=await f.arrayBuffer();
+   const pdf=await window.pdfjsLib.getDocument({data:bytes}).promise;
+   for(let pageNo=1;pageNo<=pdf.numPages;pageNo++){
+     const page=await pdf.getPage(pageNo);
+     const tc=await page.getTextContent();
+     const items=tc.items.filter(it=>it.str&&it.str.trim()).map(it=>({text:it.str.trim(),x:it.transform?.[4]||0,y:it.transform?.[5]||0}));
+     const rows=[];
+     for(const it of items){
+       let row=rows.find(r=>Math.abs(r.y-it.y)<3);
+       if(!row){row={y:it.y,items:[]};rows.push(row)}
+       row.items.push(it);
+     }
+     rows.sort((a,b)=>b.y-a.y);
+     for(const row of rows){
+       row.items.sort((a,b)=>a.x-b.x);
+       const text=row.items.map(it=>it.text).join(' ').replace(/\s+/g,' ').trim();
+       if(text)lines.push({description:text,laborCategory:'',hours:'',amount:'',sourceText:'PDF page '+pageNo+': '+text});
+     }
+   }
+   if(!lines.length)throw Error('No selectable text was found in this PDF. It may be a scanned image; run OCR or export a text/CSV version first.');
+ }else{
+   const text=await f.text();
+   if(f.name.toLowerCase().endsWith('.json')){
+     const j=JSON.parse(text);
+     lines=(Array.isArray(j)?j:(j.lines||j.lineItems||j.operations||[])).map(normalizeLine);
+     if(!lines.length)throw Error('JSON did not contain a recognizable array of estimate lines.');
+   }else if(f.name.toLowerCase().endsWith('.csv'))lines=parseCSV(text).map(normalizeLine);
+   else if(f.name.toLowerCase().endsWith('.xml'))throw Error('XML import is not implemented in this prototype. Export CSV or JSON instead.');
+   else lines=text.split(/\r?\n/).filter(x=>x.trim()).map(x=>normalizeLine(x));
+   if(!lines.length)throw Error('No readable estimate lines found.');
+ }
+ c.lines.push(...lines);touch(c);await put(c);await refresh();
+ $('importStatus').textContent='Imported '+lines.length+' line(s)'+(isPdf?' from PDF text':'')+'. Verify all descriptions, labor hours, and amounts against the original estimate; PDF column values may need manual review.';
+}catch(e){$('importStatus').textContent='Import failed: '+(e?.message||String(e))}
+};$('sampleImport').onclick=async()=>{const c=current();if(!c){$('importStatus').textContent='Create or select a case first.';return}c.lines.push({description:'Repair front bumper cover',laborCategory:'Body',hours:'2.5',amount:'0',sourceText:'Synthetic sample line'},{description:'Repair front bumper cover',laborCategory:'Body',hours:'1.0',amount:'0',sourceText:'Synthetic duplicate sample line'},{description:'Post-repair scan — verify applicability',laborCategory:'Mechanical',hours:'0.5',amount:'0',sourceText:'Synthetic sample line'});touch(c);await put(c);await refresh();$('importStatus').textContent='Synthetic sample lines added.'};
 $('saveDraft').onclick=async()=>{try{const c=current();if(!c){alert('Create or select a case first.');return}const evidence=await readFiles(Array.from($('evidence').files));c.drafts.push({id:id(),operation:$('operation').value.trim(),hours:$('hours').value,amount:$('amount').value,status:$('status').value,reason:$('reason').value.trim(),techNotes:$('techNotes').value.trim(),oemRef:$('oemRef').value.trim(),evidence,created:Date.now()});touch(c);await put(c);$('evidence').value='';await refresh();alert('Draft saved locally. Verify evidence and references before using it.')}catch(e){alert('Could not save draft: '+e.message)}};
 function download(name,data,type='application/json'){const blob=new Blob([data],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 $('exportCase').onclick=()=>{const c=current();if(c)download('estimate-copilot-case-'+c.id+'.json',JSON.stringify(c,null,2))};
