@@ -156,7 +156,7 @@ const recognizeLine=(text,sourceText)=>{
  description=description.replace(/\b\d+(?:\.\d+)?\s*(?:hours?|hrs?|hr)\b/gi,' ');
 
  // Remove category labels without removing the repair operation.
- description=description.replace(/\b(?:body|paint|mech|mechanical|structural)\s*labor\b/gi,' ');
+description=description.replace(/\b(?:body|paint|mech|mechanical|structural|refinish)\s*labor\b/gi,' ');
  description=description.replace(/\bparts?\b/gi,' ');
 
  // Remove separators and normalize whitespace.
