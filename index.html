@@ -114,6 +114,7 @@ $('importFile').onclick=async()=>{
   let lines=[];
 
 
+
 const recognizeLine=(text,sourceText)=>{
  const original=String(text||'').replace(/\s+/g,' ').trim();
  let description=original;
@@ -121,20 +122,20 @@ const recognizeLine=(text,sourceText)=>{
  let hours='';
  let amount='';
 
- // Identify the category from the original line.
- if(/\b(body labor|body)\b/i.test(original))laborCategory='Body';
- else if(/\b(paint labor|refinish labor|paint)\b/i.test(original))laborCategory='Paint';
- else if(/\b(mechanical|mechanical labor|engine|transmission|coolant|brake|suspension)\b/i.test(original))laborCategory='Mechanical';
- else if(/\b(frame|structural|unibody)\b/i.test(original))laborCategory='Structural';
- else if(/\b(parts?|replace|r&i|r&r|remove and install)\b/i.test(original))laborCategory='Parts';
+ // Identify labor category from explicit labels and common terms.
+ if(/\b(body\s*labor|body)\b/i.test(original))laborCategory='Body';
+ else if(/\b(paint\s*labor|refinish(?:\s*labor)?)\b/i.test(original))laborCategory='Paint';
+ else if(/\b(mech(?:anical)?(?:\s*labor)?|engine|transmission|coolant|brake|suspension)\b/i.test(original))laborCategory='Mechanical';
+ else if(/\b(structural(?:\s*labor)?|frame(?:\s*rail)?|unibody)\b/i.test(original))laborCategory='Structural';
+ else if(/\b(parts?|replace|r\s*&\s*i|r\s*&\s*r|remove\s+and\s+(?:install|replace))\b/i.test(original))laborCategory='Parts';
 
- // Extract explicitly labeled labor hours.
+ // Extract labeled hours wherever they appear.
  const hourMatch=original.match(/\b(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|hr)\b/i);
  if(hourMatch)hours=hourMatch[1];
 
- // Extract dollar amounts or explicit decimal prices.
+ // Extract dollar amounts or decimal prices.
  const moneyMatches=[
-  ...original.matchAll(/\$\s*\d[\d,]*(?:\.\d{2})?|\b\d[\d,]*\.\d{2}\b/g)
+  ...original.matchAll(/\$\s*\d[\d,]*(?:\.\d{1,2})?|\b\d[\d,]*\.\d{2}\b/g)
  ];
  if(moneyMatches.length){
   amount=moneyMatches[moneyMatches.length-1][0]
@@ -146,15 +147,19 @@ const recognizeLine=(text,sourceText)=>{
  // Remove leading estimate line numbers.
  description=description.replace(/^\s*\d+\s*[.)]\s*/,' ');
 
- // Remove the recognized price and labeled hours.
- description=description.replace(/\$\s*\d[\d,]*(?:\.\d{2})?/g,' ');
+ // Expand common repair-operation abbreviations.
+ description=description.replace(/\bR\s*&\s*I\b/gi,'Remove and install');
+ description=description.replace(/\bR\s*&\s*R\b/gi,'Remove and replace');
+
+ // Remove prices and labeled hours.
+ description=description.replace(/\$\s*\d[\d,]*(?:\.\d{1,2})?/g,' ');
  description=description.replace(/\b\d+(?:\.\d+)?\s*(?:hours?|hrs?|hr)\b/gi,' ');
 
- // Remove category labels, not the repair operation itself.
- description=description.replace(/\b(body|paint|mechanical|structural)\s+labor\b/gi,' ');
- description=description.replace(/\b(parts?)\b/gi,' ');
+ // Remove category labels without removing the repair operation.
+ description=description.replace(/\b(?:body|paint|mech|mechanical|structural)\s*labor\b/gi,' ');
+ description=description.replace(/\bparts?\b/gi,' ');
 
- // Remove leftover separators and normalize whitespace.
+ // Remove separators and normalize whitespace.
  description=description
   .replace(/\s*[—–|]\s*/g,' ')
   .replace(/\s+-\s+/g,' ')
@@ -172,6 +177,7 @@ const recognizeLine=(text,sourceText)=>{
   sourceText:sourceText||original
  };
 };
+
 if(isPdf){
   if(!window.pdfjsLib||typeof window.pdfjsLib.getDocument!=='function'){
   throw Error('PDF reader library is unavailable. Connect once to load the app files, then retry.');
