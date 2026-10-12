@@ -1,6 +1,5 @@
-'use strict';
-const CACHE_NAME = 'estimate-copilot-pwa-v1';
-const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './icon.svg'];
+const CACHE_NAME = 'estimate-copilot-pwa-v2';
+const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './icon.svg', './pdf.min.js', './pdf.worker.min.js'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)));
   self.skipWaiting();
