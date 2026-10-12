@@ -130,8 +130,9 @@ const recognizeLine=(text,sourceText)=>{
  else if(/\b(parts?|replace|r\s*&\s*i|r\s*&\s*r|remove\s+and\s+(?:install|replace))\b/i.test(original))laborCategory='Parts';
 
  // Extract labeled hours wherever they appear.
- const hourMatch=original.match(/\b(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|hr)\b/i);
- if(hourMatch)hours=hourMatch[1];
+const hourMatch=original.match(/\b(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|hr)\b/i)
+ || original.match(/\b(?:Body|Paint|Mechanical|Structural)\s+(\d+(?:\.\d+)?)(?=\s+\$)/i);
+if(hourMatch)hours=hourMatch[1];
 
  // Extract dollar amounts or decimal prices.
  const moneyMatches=[
