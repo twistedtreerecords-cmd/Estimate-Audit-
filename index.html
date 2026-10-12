@@ -215,13 +215,16 @@ for(const row of rows){
      row.items.sort((a,b)=>a.x-b.x);
      const text=row.items.map(it=>it.text).join(' ').replace(/\s+/g,' ').trim();
 
-     // Keep numbered repair-operation lines only.
-     if(!/^\d+\s*[.)]?\s+\S/.test(text))continue;
+// Keep only numbered repair-operation lines with a dollar amount.
+if(!/^\d+\s+[A-Za-z]/.test(text))continue;
 
-     // Skip totals and common non-repair headings.
-     if(/\b(?:estimated\s+total|grand\s+total|subtotal|claim|vehicle|estimate\s+date|repair\s+facility|repair\s+operations|description|category|hours|amount)\b/i.test(text))continue;
+// Skip headings, claim details, and summary lines.
+if(/\b(?:estimated\s+total|grand\s+total|subtotal|claim|vehicle|estimate\s+date|repair\s+facility|repair\s+operations|description|category|hours|amount)\b/i.test(text))continue;
 
-     lines.push(recognizeLine(text,'PDF page '+pageNo+': '+text));
+// Require a monetary amount so headings cannot become repair lines.
+if(!/\$\s*\d[\d,]*(?:\.\d{1,2})?/.test(text))continue;
+
+lines.push(recognizeLine(text,'PDF page '+pageNo+': '+text));
     }
    }
    if(!lines.length)
