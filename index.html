@@ -40,6 +40,7 @@ h2{font-size:1.05rem;margin:0 0 12px}label{display:block;font-size:.88rem;font-w
 <label for="estimateFile">Estimate file</label><input type="file" id="estimateFile" accept=".pdf,.csv,.json,.txt,.xml,text/csv,application/json,text/plain,text/xml">
 <div class="actions"><button id="importFile">Import into selected case</button><button class="secondary" id="sampleImport">Load sample lines</button></div>
 <div id="importStatus" class="small" role="status"></div>
+<div id="estimateTotal"></div>
 <div id="lineList"></div>
 </section>
 <section class="panel">
@@ -92,7 +93,11 @@ async function purgeExpiredCases(){
 }
 async function refresh(){cases=(await getAll()).sort((a,b)=>b.updated-a.updated);if(!cases.some(c=>c.id===selectedId))selectedId=cases[0]?.id||null;renderCases();renderSelected()}
 function renderCases(){const el=$('caseList');if(!cases.length){el.innerHTML='<p class="small">No saved cases yet.</p>';return}el.innerHTML='<h3>Saved cases</h3>'+cases.map(c=>`<div class="case"><strong>${esc(c.name||'Untitled case')} <span class="pill">${(c.lines||[]).length} lines</span></strong><p>${esc(c.vehicle||'Vehicle not specified')} · Updated ${new Date(c.updated).toLocaleString()}</p><div class="actions"><button class="secondary" data-open="${c.id}">${c.id===selectedId?'Selected':'Open case'}</button></div></div>`).join('');el.querySelectorAll('[data-open]').forEach(b=>b.onclick=async()=>{selectedId=b.dataset.open;const c=cases.find(x=>x.id===selectedId);if(c){touch(c);await put(c);await refresh()}else{renderCases();renderSelected()}})}
-function renderSelected(){const c=current();$('lineList').innerHTML=c?`<h3>Imported lines (${c.lines.length})</h3>`+(c.lines.length?c.lines.map((l,i)=>`<div class="case"><strong>${esc(l.description||l.operation||('Line '+(i+1)))}</strong><p>Labor: ${esc(l.laborCategory||'Unspecified')} · Hours: ${esc(l.hours??'—')} · Amount: ${esc(l.amount??'—')}</p><p class="small">Source: ${esc(l.sourceText||'Imported line')}</p></div>`).join(''):'<p class="small">No estimate lines imported.</p>'):'<p class="small">Create or select a case first.</p>';
+function renderSelected(){
+const c=current();
+const total=(c?.lines||[]).reduce((sum,l)=>{const n=Number(String(l.amount??'').replace(/[$,]/g,''));return sum+(Number.isFinite(n)?n:0)},0);
+  $('estimateTotal').innerHTML=c?'<h3>Estimate Total: $'+total.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+'</h3>':'';
+$('lineList').innerHTML=c?
 $('findings').innerHTML=c?makeFindings(c):'<p class="small">Select a case to review its imported lines.</p>';
 $('draftList').innerHTML=c?'<h3>Saved drafts ('+c.drafts.length+')</h3>'+(c.drafts.length?c.drafts.map(d=>`<div class="case"><strong>${esc(d.operation||'Unspecified operation')}</strong><p>${esc(d.status)} · ${esc(d.hours||'0')} labor hours · $${Number(d.amount||0).toFixed(2)}</p><p>${esc(d.reason||'No reason entered')}</p><p class="small">${d.evidence.length} evidence file(s) · Saved ${new Date(d.created).toLocaleString()}</p></div>`).join(''):'<p class="small">No supplement drafts yet.</p>'):'';
 }
