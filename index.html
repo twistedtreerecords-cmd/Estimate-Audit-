@@ -204,14 +204,19 @@ if(isPdf){
 
     rows.sort((a,b)=>b.y-a.y);
 
-    for(const row of rows){
+
+for(const row of rows){
      row.items.sort((a,b)=>a.x-b.x);
      const text=row.items.map(it=>it.text).join(' ').replace(/\s+/g,' ').trim();
-     if(text){
-      lines.push(recognizeLine(text,'PDF page '+pageNo+': '+text));
-     }
+
+     // Keep numbered repair-operation lines only.
+     if(!/^\d+\s*[.)]?\s+\S/.test(text))continue;
+
+     // Skip totals and common non-repair headings.
+     if(/\b(?:estimated\s+total|grand\s+total|subtotal|claim|vehicle|estimate\s+date|repair\s+facility|repair\s+operations|description|category|hours|amount)\b/i.test(text))continue;
+
+     lines.push(recognizeLine(text,'PDF page '+pageNo+': '+text));
     }
-   }
 
    if(!lines.length)
     throw Error('No selectable text was found. This PDF may be scanned and require OCR.');
